@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Metaduck</title>
+    <meta name="author" content="Pedro Teixeira">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/metaduck.css">
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">Metaduck</a></h1>
+    </header>
+
+    <section id="script"><h1>Dump This And Prototype</h1>
+<h2>(How I like to build classes in Javascript)</h2>
+<p>When developing server-side Javascript for Node.js, generally I tend to encapsulate classes inside CommonJS modules and expose the constructor function as module itself.
+
+</p>
+<p>As an incomplete example of how I used to do it, let’s build a module that exposes a rectangle class:
+
+</p>
+<pre><code class="lang-javascript"><span class="function"><span class="keyword">function</span> <span class="title">Rectangle</span><span class="params">(x, y, width, height)</span> {</span>
+  <span class="keyword">this</span>.x = x;
+  <span class="keyword">this</span>.y = y;
+  <span class="keyword">this</span>.width = width;
+  <span class="keyword">this</span>.height = height;
+}
+
+Rectangle.prototype.area = <span class="keyword">function</span>() {
+  <span class="keyword">return</span> <span class="keyword">this</span>.width * <span class="keyword">this</span>.height;
+};
+
+module.exports = Rectangle;</code></pre>
+<p>Let’s say you save this module under the name “rectangle.js”, on the current directory.
+
+</p>
+<p>Then, to instantiate a rectangle you must do:
+
+</p>
+<pre><code class="lang-javascript"><span class="keyword">var</span> Rectangle = require(<span class="string">'./rectangle'</span>);
+<span class="keyword">var</span> rectangle = <span class="keyword">new</span> Rectangle(<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">4</span>);
+rectangle.area(); <span class="comment">// -&gt; 12</span></code></pre>
+<p>All is fine and dandy, right?
+
+</p>
+<p>Nope. This way you can tamper with the rectangle object, changing properties and even overriding functions. I think this is not a major problem, but exposes a major design flaw, which I’ll cover later.
+
+</p>
+<p>Now you want to add a private function. You have two main options: 1) add it as a function on the module scope or 2) add it as a function on the Rectangle.prototype object, but giving it an underscore so everyone knows they shouldn’t be calling.
+
+</p>
+<p>Lets’ say for the purpose of the example, that you want to add a provate function named “coalesce”, which you want to call after the constructor.
+
+</p>
+<h2>1) Add it to the module scope</h2>
+<pre><code class="lang-javascript"><span class="function"><span class="keyword">function</span> <span class="title">coalesce</span><span class="params">()</span> {</span>
+  <span class="keyword">var</span> self = <span class="keyword">this</span>;
+  [<span class="string">'x'</span>, <span class="string">'y'</span>, <span class="string">'width'</span>, <span class="string">'height'</span>].forEach(<span class="keyword">function</span>(prop) {
+    <span class="keyword">if</span> (!self[prop]) { self[prop] = <span class="number">0</span>; }
+  });
+}
+
+<span class="function"><span class="keyword">function</span> <span class="title">Rectangle</span><span class="params">(x, y, width, height)</span> {</span>
+  <span class="keyword">this</span>.x = x;
+  <span class="keyword">this</span>.y = y;
+  <span class="keyword">this</span>.width = width;
+  <span class="keyword">this</span>.height = height;
+  coalesce.apply(<span class="keyword">this</span>);
+}
+
+Rectangle.prototype.area = <span class="keyword">function</span>() {
+  <span class="keyword">return</span> <span class="keyword">this</span>.width * <span class="keyword">this</span>.height;
+};
+
+module.exports = Rectangle;</code></pre>
+<p>Here we can see the constructor calling the “coalesce” function using the function.apply(), which sets the “this” scope, which then the coalesce function can use as the object.
+
+</p>
+<h2>2) Add it as a function on the Rectangle.prototype</h2>
+<pre><code class="lang-javascript"><span class="function"><span class="keyword">function</span> <span class="title">Rectangle</span><span class="params">(x, y, width, height)</span> {</span>
+  <span class="keyword">this</span>.x = x;
+  <span class="keyword">this</span>.y = y;
+  <span class="keyword">this</span>.width = width;
+  <span class="keyword">this</span>.height = height;
+  <span class="keyword">this</span>._coalesce();
+}
+
+Rectangle.prototype.area = <span class="keyword">function</span>() {
+  <span class="keyword">return</span> <span class="keyword">this</span>.width * <span class="keyword">this</span>.height;
+};
+
+Rectangle.prototype._coalesce = <span class="keyword">function</span>() {
+  <span class="keyword">var</span> self = <span class="keyword">this</span>;
+  [<span class="string">'x'</span>, <span class="string">'y'</span>, <span class="string">'width'</span>, <span class="string">'height'</span>].forEach(<span class="keyword">function</span>(prop) {
+    <span class="keyword">if</span> (!self[prop]) { self[prop] = <span class="number">0</span>; }
+  });
+};
+
+module.exports = Rectangle;</code></pre>
+<p>This way is simpler, but we’re exposing the coalesce function, which is ugly.
+
+</p>
+<h2>The problem</h2>
+<p>As I said earlier, this pattern exposes the methods and the data on the rectangle object.
+
+</p>
+<p>The ultimate goal would be to expose the methods and encapsulate the data. How can we do that?
+
+</p>
+<p>Here is a solution I like to use:
+
+</p>
+<pre><code class="lang-javascript"><span class="function"><span class="keyword">function</span> <span class="title">Rectangle</span><span class="params">(x, y, width, height)</span> {</span>
+
+  <span class="function"><span class="keyword">function</span> <span class="title">area</span><span class="params">()</span> {</span>
+    <span class="keyword">return</span> width * height;
+  };
+
+  <span class="function"><span class="keyword">function</span> <span class="title">coalesce</span><span class="params">()</span> {</span>
+    <span class="keyword">if</span> (! x) { x = <span class="number">0</span>; }
+    <span class="keyword">if</span> (! y) { y = <span class="number">0</span>; }
+    <span class="keyword">if</span> (! width) { width = <span class="number">0</span>; }
+    <span class="keyword">if</span> (! height) { height = <span class="number">0</span>; }
+  }
+
+  coalesce();
+  <span class="keyword">return</span> {
+    area: area
+  };
+}
+
+module.exports = Rectangle;</code></pre>
+<p>And a client of this module would look like:
+
+</p>
+<pre><code class="lang-javascript"><span class="keyword">var</span> Rectangle = require(<span class="string">'./rectangle'</span>);
+<span class="keyword">var</span> rectangle = Rectangle(<span class="literal">undefined</span>, <span class="literal">undefined</span>, <span class="number">3</span>, <span class="number">4</span>);</code></pre>
+<p>What have we done here?
+
+</p>
+<p>The constructor simply returns an object that has the methods we want to expose. The data is encapsulated inside the constructor function, which also contains all the functions (private and public) that have privileged access to these.
+
+</p>
+<p>Then we’re dropping the using of “new” notation on the class clients (which could cause a lot of problems on the previous model if module clients omitted it).
+
+</p>
+<p>This pattern also allows for object methods (private or public) to call each other with no restraints, since we are not relying on the leaky this object.
+
+</p>
+<h2>What about inheritance?</h2>
+<p>A useful way of declaring that a class (or pseudo-class, if you will) inherits from another one is having the constructor prototype pointing to an object that it “inherits” behavior from. Node (and almost all the Javascript frameworks) has convenience function for doing this in util.inherit().
+
+</p>
+<p>For instance, say you want our Rectangle class (as in our first incarnation) inheriting from the Node EventEmitter class:
+
+</p>
+<pre><code class="lang-javascript"><span class="keyword">var</span> inherit = require(<span class="string">'util'</span>).inherit
+  , EventEmitter = require(<span class="string">'events'</span>).EventEmitter;
+
+<span class="function"><span class="keyword">function</span> <span class="title">Rectangle</span><span class="params">(x, y, width, height)</span> {</span>
+  <span class="keyword">this</span>.x = x;
+  <span class="keyword">this</span>.y = y;
+  <span class="keyword">this</span>.width = width;
+  <span class="keyword">this</span>.height = height;
+}
+
+inherit(Rectangle, EventEmitter);
+
+Rectangle.prototype.area = <span class="keyword">function</span>() {
+  <span class="keyword">return</span> <span class="keyword">this</span>.width * <span class="keyword">this</span>.height;
+};
+
+module.exports = Rectangle;</code></pre>
+<p>Convenient, heh?
+
+</p>
+<p>(You must be careful to call inherit before setting the prototype properties, or else they will be nuked).
+
+</p>
+<p>How can we then implement inheritance if we’re not using the tradicional Javascript constructor functions?
+
+</p>
+<p>Here is a way:
+
+</p>
+<pre><code class="lang-javascript"><span class="keyword">var</span> EventEmitter = require(<span class="string">'events'</span>).EventEmitter;
+
+<span class="function"><span class="keyword">function</span> <span class="title">Rectangle</span><span class="params">(x, y, width, height)</span> {</span>
+  <span class="keyword">var</span> that;
+
+  <span class="function"><span class="keyword">function</span> <span class="title">area</span><span class="params">()</span> {</span>
+    <span class="keyword">return</span> width * height;
+  };
+
+  <span class="function"><span class="keyword">function</span> <span class="title">coalesce</span><span class="params">()</span> {</span>
+    <span class="keyword">if</span> (! x) { x = <span class="number">0</span>; }
+    <span class="keyword">if</span> (! y) { y = <span class="number">0</span>; }
+    <span class="keyword">if</span> (! width) { width = <span class="number">0</span>; }
+    <span class="keyword">if</span> (! height) { height = <span class="number">0</span>; }
+  }
+
+  coalesce();
+
+  that = {
+    area: area
+  };
+
+  that.__proto__ = EventEmitter.prototype;
+
+  <span class="keyword">return</span> that;
+}
+
+module.exports = Rectangle;</code></pre>
+<p>So, we’re using the <code>__proto__</code> object, which is reserved in Javascript for the actual prototype object. So if you call any EventEmitter-specific methods like <code>on()</code> and <code>emit()</code>, the runtime will look into the rectangle object, and if not found, will search inside the prototype chain.
+
+</p>
+<p>Even though it is standard, bear in mind you that the <code>__proto__</code> object is not entirely portable to all Javascript platforms and browsers, but there are ways around that.</p>
+    </section>
+    <script>
+
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-97144-8']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+
+    </script>
+  </body>
+</html>

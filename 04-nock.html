@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Metaduck</title>
+    <meta name="author" content="Pedro Teixeira">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/metaduck.css">
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">Metaduck</a></h1>
+    </header>
+
+    <section id="script"><h1>HTTP Mocking Made Easy With Nock</h1>
+<p>I love testing and I love small easily testable modules in Node.
+
+</p>
+<p>Recently I had to build a library module that interacts with some web services via HTTP.
+
+</p>
+<p>To test this module as it was would mean that I would have to have a sandboxed account on the other end. I also would have to have setup and teardown routines that would reset the sandbox to a known state, etc, etc.
+
+</p>
+<p>What I really wanted for the unit tests was to test the module in isolation. In this case, it would mean capturing the HTTP requests and replying a pre-made response.
+
+</p>
+<p>Enter nock.
+
+</p>
+<p>Nock is an HTTP mocking and expectations library for Node.js
+
+</p>
+<p>With Nock you can easily mock a GET request:
+
+</p>
+<pre><code class="lang-javascript"><span class="keyword">var</span> nock = require(<span class="string">'nock'</span>);
+
+<span class="keyword">var</span> scope = nock(<span class="string">'http://myapp.iriscouch.com'</span>)
+                .get(<span class="string">'/users/1'</span>)
+                .reply(<span class="number">200</span>, {_id: <span class="string">"123ABC"</span>, _rev: <span class="string">"946B7D1C"</span>, username: <span class="string">'pgte'</span>, email: <span class="string">'pedro.teixeira@gmail.com'</span>});</code></pre>
+<p>or a POST request with a specified body (string or json-encoded object):
+
+</p>
+<pre><code class="lang-javascript"><span class="keyword">var</span> scope = nock(<span class="string">'http://myapp.iriscouch.com'</span>)
+                .post(<span class="string">'/users'</span>, {username: <span class="string">'pgte'</span>, email: <span class="string">'pedro.teixeira@gmail.com'</span>})
+                .reply(<span class="number">201</span>, {ok: <span class="literal">true</span>, id: <span class="string">"123ABC"</span>, rev: <span class="string">"946B7D1C"</span>});</code></pre>
+<p>or a PUT or a DELETE in the same fashion.
+
+</p>
+<p>You can also specify the response as a string:
+
+</p>
+<pre><code class="lang-javascript"><span class="keyword">var</span> scope = nock(<span class="string">'http://api.app.com'</span>)
+                .post(<span class="string">'/users'</span>, {username: <span class="string">'pgte'</span>, email: <span class="string">'pedro.teixeira@gmail.com'</span>})
+                .reply(<span class="number">201</span>, <span class="string">"OK"</span>);</code></pre>
+<p>or as a JSON-encoded object:
+
+</p>
+<pre><code class="lang-javascript"><span class="keyword">var</span> scope = nock(<span class="string">'http://api.app.com'</span>)
+                .post(<span class="string">'/users'</span>, {username: <span class="string">'pgte'</span>, email: <span class="string">'pedro.teixeira@gmail.com'</span>})
+                .reply(<span class="number">201</span>, {ok: <span class="literal">true</span>, _id: <span class="string">"abcdef"</span>, _rev: <span class="string">"1234"</span>});</code></pre>
+<p>or from the contents of a file: 
+
+</p>
+<pre><code class="lang-javascript"><span class="keyword">var</span> scope = nock(<span class="string">'http://api.app.com'</span>)
+                .post(<span class="string">'/users'</span>, {username: <span class="string">'pgte'</span>, email: <span class="string">'pedro.teixeira@gmail.com'</span>})
+                .replyWithFile(<span class="number">201</span>, __dirname + <span class="string">'/assets/reply.json'</span>);</code></pre>
+<h2>Filtering paths and bodies</h2>
+<p>If you have time-dependent or random data you want to filter out from the request path or body, you can use a regular expression, much like String.prototype.replace:
+
+</p>
+<pre><code class="lang-javascript"><span class="keyword">var</span> scope = nock(<span class="string">'http://api.app.com'</span>)
+                .filterPath(<span class="regexp">/timestamp=[^&amp;]*/g</span>, <span class="string">''</span>)
+                .post(<span class="string">'/users'</span>, {username: <span class="string">'pgte'</span>, email: <span class="string">'pedro.teixeira@gmail.com'</span>})
+                .replyWithFile(<span class="number">201</span>, __dirname + <span class="string">'/assets/reply.json'</span>);</code></pre>
+<p><code>.filterPath()</code> also accepts a function as sole argument. That function should return the filtered path.
+
+</p>
+<p>As said, Nock also supports request body filtering much the same way it does with path filtering. Just use <code>.filterRequestBody</code> like this:
+
+</p>
+<pre><code class="lang-javascript"><span class="keyword">var</span> scope = nock(<span class="string">'http://api.app.com'</span>)
+                .filterRequestBody(<span class="regexp">/timestamp=[^&amp;]*/g</span>, <span class="string">''</span>)
+                .post(<span class="string">'/users'</span>, {username: <span class="string">'pgte'</span>, email: <span class="string">'pedro.teixeira@gmail.com'</span>})
+                .replyWithFile(<span class="number">201</span>, __dirname + <span class="string">'/assets/reply.json'</span>);</code></pre>
+<p>or even with a function as the only argument.
+
+</p>
+<h2>Expectations</h2>
+<p>When a scope is defined Nock intercepts every HTTP request being made in that process to that host. If a match is not found - Nock matches verb, path and body - an exception is raised.
+
+</p>
+<p>When a mocking match is found, Nock removes that match.
+
+</p>
+<p>At the end of the test, if you wish to test that all the expected calls were made, you can use
+
+</p>
+<pre><code class="lang-javascript">scope.done();</code></pre>
+<p>and a detailed exception will be thrown if some expectations were not met.
+
+</p>
+<h2>Feedback</h2>
+<p>I hope this module makes testing easier for you.
+
+</p>
+<p>Feedback with suggestions is welcome!</p>
+    </section>
+    <script>
+
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-97144-8']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+
+    </script>
+  </body>
+</html>

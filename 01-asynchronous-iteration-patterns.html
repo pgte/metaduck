@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Metaduck</title>
+    <meta name="author" content="Pedro Teixeira">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/metaduck.css">
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">Metaduck</a></h1>
+    </header>
+
+    <section id="script"><h1>Asynchronous Iteration Patterns In Node.js</h1>
+<p>Some patterns are hard to grasp, specially when programming asynchronously like you have to when you’re doing IO on node.js.
+
+</p>
+<p>For example, let’s suppose you had to program the following routine:
+
+</p>
+<p>Insert a collection of objects on the database and then, when finished, call a callback.
+So, if you had to write this in a synchronous fashion you would do something like this:
+
+</p>
+<pre><code class="lang-javascript"><span class="function"><span class="keyword">function</span> <span class="title">insertCollection</span><span class="params">(collection)</span> {</span>
+  <span class="keyword">for</span>(<span class="keyword">var</span> i = <span class="number">0</span>; i &lt; collection.length; i++) {
+    db.insert(collection[i]);
+  }
+}</code></pre>
+<p>So, since we are using node.js, db.insert is most probably asynchronous. We have to turn this into an asynchronous function.
+
+</p>
+<p>I have seen some obviously wrong implentations like this one:
+
+</p>
+<pre><code class="lang-javascript"><span class="function"><span class="keyword">function</span> <span class="title">insertCollection</span><span class="params">(collection, callback)</span> {</span>
+  <span class="keyword">for</span>(<span class="keyword">var</span> i = <span class="number">0</span>; i &lt; collection.length; i++) {
+    db.insert(collection[i], <span class="keyword">function</span>(err) {
+      <span class="keyword">if</span> (err) {
+        <span class="keyword">throw</span> err;
+      }
+    });
+  }
+  callback();
+}</code></pre>
+<p>The problem with this one is obvious: callback is called right after launching all the db.inserts on the background, not leaving them a chance to finish. By the time callback gets called, none of the inserts has terminated.
+
+</p>
+<p>Another approach would be this one:
+
+</p>
+<pre><code class="lang-javascript"><span class="function"><span class="keyword">function</span> <span class="title">insertCollection</span><span class="params">(collection, callback)</span> {</span>
+  <span class="keyword">for</span>(<span class="keyword">var</span> i = <span class="number">0</span>; i &lt; collection.length; i++) {
+    (<span class="keyword">function</span>(i) {
+      db.insert(collection[i], <span class="keyword">function</span>(err) {
+        <span class="keyword">if</span> (err) {
+          callback(err);
+          <span class="keyword">return</span>;
+        }
+        <span class="keyword">if</span> (i == (collection.length - <span class="number">1</span>)) {
+          callback();
+        }
+      });
+    })(i);
+  }
+}</code></pre>
+<p>So, there is some temptation to think “we have to call when the last insert calls back”, but this is plain wrong. The first insert can still be executing when the last one callsback. You never know.
+
+</p>
+<p>I think that the safest approach is to do something like this:
+
+</p>
+<pre><code class="lang-javascript"><span class="function"><span class="keyword">function</span> <span class="title">insertCollection</span><span class="params">(collection, callback)</span> {</span>
+  <span class="keyword">var</span> inserted = <span class="number">0</span>;
+  <span class="keyword">for</span>(<span class="keyword">var</span> i = <span class="number">0</span>; i &lt; collection.length; i++) {
+    db.insert(collection[i], <span class="keyword">function</span>(err) {
+      <span class="keyword">if</span> (err) {
+        callback(err);
+        <span class="keyword">return</span>;
+      }
+      <span class="keyword">if</span> (++inserted == collection.length) {
+        callback();
+      }
+    });
+  }
+}</code></pre>
+<p>You should only callback when all of the inserts have called back.
+
+</p>
+<h2>Serialization</h2>
+<p>Sometimes you want to control the flow and / or the order of the execution.
+
+</p>
+<p>You may want the inserts to be perfectly ordered in this case, or you may want to stop inserting if an error occurs so you can recover more easily.
+
+</p>
+<p>If that’s the case, you can do something like this:
+
+</p>
+<pre><code class="lang-javascript"><span class="function"><span class="keyword">function</span> <span class="title">insertCollection</span><span class="params">(collection, callback)</span> {</span>
+  <span class="keyword">var</span> coll = collection.slice(<span class="number">0</span>); <span class="comment">// clone collection</span>
+  (<span class="function"><span class="keyword">function</span> <span class="title">insertOne</span><span class="params">()</span> {</span>
+    <span class="keyword">var</span> record = coll.splice(<span class="number">0</span>, <span class="number">1</span>)[<span class="number">0</span>]; <span class="comment">// get the first record of coll and reduce coll by one</span>
+    db.insert(record, <span class="keyword">function</span>(err) {
+      <span class="keyword">if</span> (err) { callback(err); <span class="keyword">return</span> }
+      <span class="keyword">if</span> (coll.length == <span class="number">0</span>) {
+        callback();
+      } <span class="keyword">else</span> {
+        insertOne();
+      }
+    }
+  })();
+}</code></pre>
+<p>Here we are using tail recursion to keep inserting the records.
+
+</p>
+<p>This example has one problem: it uses the stack, so if collection os too big, you might end blowing up the stack.
+
+</p>
+<p>One solution to this problem is to abandon the stack when recursing. And you can do it using a setTimeout with the timeout value of 0. The makes the inner function being called after the stack unwinds:
+
+</p>
+<pre><code class="lang-javascript"><span class="function"><span class="keyword">function</span> <span class="title">insertCollection</span><span class="params">(collection, callback)</span> {</span>
+  <span class="keyword">var</span> coll = collection.slice(<span class="number">0</span>); <span class="comment">// clone collection</span>
+  (<span class="function"><span class="keyword">function</span> <span class="title">insertOne</span><span class="params">()</span> {</span>
+    <span class="keyword">var</span> record = coll.splice(<span class="number">0</span>, <span class="number">1</span>)[<span class="number">0</span>]; <span class="comment">// get the first record of coll and reduce coll by one</span>
+    db.insert(record, <span class="keyword">function</span>(err) {
+      <span class="keyword">if</span> (err) { callback(err); <span class="keyword">return</span> }
+      <span class="keyword">if</span> (coll.length == <span class="number">0</span>) {
+        callback();
+      } <span class="keyword">else</span> {
+        setTimeout(insertOne, <span class="number">0</span>);
+      }
+    }
+  })();
+}</code></pre>
+<h2>Follow-up</h2>
+<p>See the follow-up article Asynchronous iteration patterns in Node.js - part 2
+
+</p>
+<h2>Update:</h2>
+<p>Also (as pointed out by Tim Caswell), it’s important that no exceptions go back up into the event loop instead of ending up on the callback. So, you should wrap your db.insert or any other external function call. Our last example should then be:
+
+</p>
+<pre><code class="lang-javascript"><span class="function"><span class="keyword">function</span> <span class="title">insertCollection</span><span class="params">(collection, callback)</span> {</span>
+  <span class="keyword">var</span> coll = collection.slice(<span class="number">0</span>); <span class="comment">// clone collection</span>
+  (<span class="function"><span class="keyword">function</span> <span class="title">insertOne</span><span class="params">()</span> {</span>
+    <span class="keyword">var</span> record = coll.splice(<span class="number">0</span>, <span class="number">1</span>)[<span class="number">0</span>]; <span class="comment">// get the first record of coll and reduce coll by one</span>
+    <span class="keyword">try</span> {
+      db.insert(record, <span class="keyword">function</span>(err) {
+        <span class="keyword">if</span> (err) { callback(err); <span class="keyword">return</span> }
+        <span class="keyword">if</span> (coll.length == <span class="number">0</span>) {
+          callback();
+        } <span class="keyword">else</span> {
+          insertOne();
+        }
+      }
+    } <span class="keyword">catch</span> (exception) {
+      callback(exception);
+    }
+  })();
+}</code></pre>
+    </section>
+    <script>
+
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-97144-8']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+
+    </script>
+  </body>
+</html>

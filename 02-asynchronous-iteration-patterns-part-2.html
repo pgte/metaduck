@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Metaduck</title>
+    <meta name="author" content="Pedro Teixeira">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/metaduck.css">
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">Metaduck</a></h1>
+    </header>
+
+    <section id="script"><h1>Asynchronous Iteration Patterns In Node.js - Part 2</h1>
+<p>This is a follow-up to my previous article “Asynchronous iteration patterns”.
+
+</p>
+<p>The latest feedback has been great, some corrections and remarks were sent my way.
+
+</p>
+<p>Also, some node.js hate was spread around because of what I think is the added complexity some times needed to handle asynchronous IO. It was not my intention to spread fear about handling asynchronous IO, but to gather and spread my view on how to handle them. In my view, asyhcnronous is good and here to stay, you should learn to embrace it.
+
+</p>
+<p>But first, a correction:
+
+</p>
+<h2>Doh!</h2>
+<p>I was alerted by some readers that the serialize_timeout.js version (where we detach from the stack using a setTimeout) would not be necessary since we are already detaching from the stack by calling an asynchronous IO operation.
+
+</p>
+<p>Right you are.
+
+</p>
+<h2>Apples and Oranges - being fair</h2>
+<p>If we are going to compare node.js IO programming with “normal” blocking programming, let’s be fair, and compare two equivalent objects.
+
+</p>
+<p>In my opinion, comparing syntaxes for blocking IO APIs with non-blocking IO APIs is not fair, since non-blocking allows you to do much more. If you want to compare both, you have to compare the node.js solution to the following solution on the blocking world:
+
+</p>
+<p>Since non-blocking IO allows you to put a lot of IO operations on the background, it’s only fair that we compare the same capability on the blocking world.
+
+</p>
+<p>To have the same behaviour on the blocking world you would have to have, to start with, a thread pool. No, you can’t get away with creating a fresh new thread for each IO operation, since node.js does away with that overhead.
+
+</p>
+<p>Then you would have to assign each IO operation to a new thread from the thread pool.
+
+</p>
+<p>Then the main thread would block waiting for a completion signal from one of them.
+
+</p>
+<p>Each thread would have to keep a global completion counter in order to know when all operations are done with. And yes, you have to synchronize thread access to that piece of memory.
+
+</p>
+<p>When one thread detects that all operations are done, it has to notify the main thread that’s waiting it in order to unblock.
+Not simpler in my opinion.
+
+</p>
+<p>You could also run with co-routines, continuations, fibers - however you wish to call cooperative multi-tasking -. It would be a simplification - you wouldn’t have to synchronize access to the counter - but you still would have to manage multiple contexts. Also, not simpler in my opinion.
+
+</p>
+<h2>Abstractions</h2>
+<p>Also, the article served to expose the underlying patterns and their consequences. Day-to-day programmers should not have to deal with this complexity. That’s why some abstractions have been devised.
+
+</p>
+<p>Here is one of them:
+
+</p>
+<h2>Step</h2>
+<p>Step is Tim Caswell’s flow control library. It allows for chaining callbacks in an easy way.
+
+</p>
+<p>For example, let’s say we have a function called async, which serves to simulate asynchronous IO, abstracting us away from the database interaction.
+
+</p>
+<pre><code class="lang-javascript"><span class="function"><span class="keyword">function</span> <span class="title">async</span><span class="params">(i, callback)</span> {</span>
+  timeout = Math.round(Math.random() * <span class="number">3000</span>);
+  setTimeout(<span class="keyword">function</span>() {
+    console.log(i + <span class="string">' is done'</span>);
+    callback();
+  }, timeout);
+}</code></pre>
+<p>Next we need to install step using npm, just type
+
+</p>
+<pre><code class="lang-bash">$ npm install step</code></pre>
+<p>Then, we need to, say, insert 10 elements into the database in parallel.
+
+</p>
+<pre><code class="lang-javascript"><span class="keyword">var</span> Step = require(<span class="string">'step'</span>);
+
+<span class="keyword">var</span> collection = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>, <span class="number">7</span>, <span class="number">8</span>, <span class="number">9</span>, <span class="number">10</span>];
+
+Step(
+
+  <span class="function"><span class="keyword">function</span> <span class="title">insertAll</span><span class="params">()</span> {</span>
+    <span class="keyword">var</span> self = <span class="keyword">this</span>;
+    collection.forEach(<span class="keyword">function</span>(element) {
+      async(element, self.parallel());
+    });
+  },
+  <span class="function"><span class="keyword">function</span> <span class="title">finalize</span><span class="params">(err)</span> {</span>
+    <span class="keyword">if</span> (err) { console.log(err);<span class="keyword">return</span>;}
+    console.log(<span class="string">'done with no problem'</span>);
+  }
+);</code></pre>
+<p>You would simply use step with 2 functions.
+
+</p>
+<p>On the first you would just insert all the elements in parallel. To the callback you pass this.parallel(), which is the way to create a callback in step that handles parallel requests.</p>
+    </section>
+    <script>
+
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-97144-8']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+
+    </script>
+  </body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Metaduck</title>
+    <meta name="author" content="Pedro Teixeira">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/metaduck.css">
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">Metaduck</a></h1>
+    </header>
+
+    <section id="script"><h1>Banzai - Document Processing Pipelines In Node.js</h1>
+<p>Banzai is a document processing framework for Node.js.
+
+</p>
+<p>You define a set of pipelines into which you push documents. Each document in a pipeline has a given state. A state transition triggers a state entry handler that can transform the document and interact with the outside world. The documents ends in a defined or in an “error” state.
+
+</p>
+<h2>Rollback and Playback</h2>
+<p>You can roll-back the state of a document to a certain previous state, and playback the pipeline flow. This can be useful, for instance, if a given document enters an error state because of a bug or a networking problem somewhere. You can correct the bug, roll-back to a previous state and play the pipeline from thereon, hopefully escaping that error condition.
+
+</p>
+<p>Each state transition has a “next state”, a priority and a optional pre-condition. The candidate transitions (there can be more than one) are evaluated in the given priority, and if there is a pre-condition, it is evaluated, and if there is a match, the corresponding state transition handler is triggered.
+
+</p>
+<p>Each state transition can have an “undo handler”, that takes care of undoing the document. This can be useful if external services were changed and you need to revert those changes when you revert a transition.
+
+</p>
+<h2>All JavaScript</h2>
+<p>The state transition handlers and the pre-conditions are all defined in JavaScript and are asynchronous, meaning that you can perform I/O inside them. The pipeline definition is also written in JavaScript.
+
+</p>
+<h2>Architecture</h2>
+<p>A Banzai deployment has 4 main components: the document store, the state store, the workers and the work queue.
+
+</p>
+<h2>The Document Store</h2>
+<p>The document store is where - you guessed it - the documents are stored. The document is retrieved when entering a state transition, passed into the state transition handler and saved when the handler is done. This way a state transition can be picked by any worker and the document is always persisted, surviving failures.
+
+</p>
+<h2>State Store</h2>
+<p>The state store is where the state for each document transitioning or that has transitioned a pipeline is stored. There you can also find some additional meta-data, like all the transitions that occurred and their start and end times plus some meta-data that the state transitions can save.
+
+</p>
+<h2>Workers</h2>
+<p>Workers are processes that are listening for state transitions and that pick up the work of invoking the state transition handler and deciding the next state.
+
+</p>
+<h2>Work Queue</h2>
+<p>The Work Queue is an event queue that persists and distributes the transitions to be picked up by the workers.
+
+</p>
+<h2>Adapters</h2>
+<h3>Doc Store and State Store</h3>
+<p>Currently the only supported database is CouchDB, but technically any document database is supported. It should, by the way, store every version of the documents (as CouchDB does) if you want to be able to roll-back to certain versions of the documents.
+
+</p>
+<p>The module for supporting CouchDB is banzai-couchdb-store.
+
+</p>
+<h3>Queue</h3>
+<p>Currently we support Redis (any version &gt;= 2.1.7) if you use the banzai-redis module, but any queueing system that allows the same semantics should work.
+
+</p>
+<h2>Show me the code!</h2>
+<p>Check out <a href="https://github.com/pgte/banzai#banzai-">the project README</a>.</p>
+    </section>
+    <script>
+
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-97144-8']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+
+    </script>
+  </body>
+</html>

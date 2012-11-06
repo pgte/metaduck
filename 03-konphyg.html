@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Metaduck</title>
+    <meta name="author" content="Pedro Teixeira">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/metaduck.css">
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">Metaduck</a></h1>
+    </header>
+
+    <section id="script"><h1>Configuration Files in Node.js Made Easy With Konphyg</h1>
+<p>Configuration is always a chore, a simple thing you have to do, and keep reinventing every time you start a new project.
+
+</p>
+<p>I usually have the following setup:
+
+</p>
+<p>I have one configuration file per domain and several domains. A domain may be “www”, “couchdb” or a remote service that requires some parametrization like Postmark.
+
+</p>
+<p>These are JSON files that lie in some directory.
+
+</p>
+<p>Now, I want to be able to override them for each environment the application works on. I may have a “development” environment, a “test” environment, a “staging” environment and a “production” environment. I may even have different development environment configurations depending on the developer.
+
+</p>
+<p>I want, for each of these environments, to be able to slightly tweak each configuration for some domains. For instance, I use localhost for Redis in my development environment, but redis.hostname.com in my production one. I want to be able to just specify the differences, not the whole configuration again, because soon that starts to be unmaintainable.
+
+</p>
+<p>Looks simple, right? I searched through some existing Node.js modules that manage configuration, and had none that answered these requirements.
+
+</p>
+<p>So I came up with Konphyg.
+
+</p>
+<h2>Installing</h2>
+<pre><code class="lang-bash">$ npm install konphyg</code></pre>
+<h2>Using</h2>
+<p>First you import konphyg and give it a source dir like this:
+
+</p>
+<pre><code class="lang-javascript"><span class="keyword">var</span> config = require(<span class="string">'konphyg'</span>)(__dirname + <span class="string">"/config"</span>);</code></pre>
+<p>Then you create the “config” dir and put a configuration file for each domain. For instance, for the “postmark” domain, I can have:
+
+</p>
+<pre><code class="lang-javascript">{
+    <span class="string">"host"</span>: <span class="string">"api.postmarkapp.com"</span>
+  , <span class="string">"ssl"</span>: <span class="literal">false</span>
+  , <span class="string">"api_key"</span>: <span class="string">"myapikey"</span>
+}</code></pre>
+<p>I place this file inside the “config” dir and name it “postmark.json”.
+
+</p>
+<p>Now, for my development environment I need to specify my API key. So, inside the config dir I place the file “postmark.development.json” with just this:
+
+
+</p>
+<pre><code class="lang-javascript">{
+    <span class="string">"api_key"</span>: <span class="string">"ABCDEFGHI"</span>
+}</code></pre>
+<p>Then, on my Node code, if I do:
+
+</p>
+<pre><code class="lang-javascript">console.log(config(<span class="string">"postmark"</span>));</code></pre>
+<p>I get:
+
+
+</p>
+<pre><code class="lang-javascript">{
+    <span class="string">"host"</span>: <span class="string">"api.postmarkapp.com"</span>
+  , <span class="string">"ssl"</span>: <span class="literal">false</span>
+  , <span class="string">"api_key"</span>: <span class="string">"ABCDEFGHI"</span>
+}</code></pre>
+<p>Simple, right?
+
+</p>
+<p>Konphyg can also handle deep object nesting in your configuration file, and it will correctly merge the environment-specific configuration with the base one.
+
+</p>
+<p>Konphyg uses the NODE_ENV environment variable to determine the environment. If not present, it defaults to “development”.</p>
+    </section>
+    <script>
+
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-97144-8']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+
+    </script>
+  </body>
+</html>

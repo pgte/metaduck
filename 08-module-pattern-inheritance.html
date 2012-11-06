@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Metaduck</title>
+    <meta name="author" content="Pedro Teixeira">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/metaduck.css">
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">Metaduck</a></h1>
+    </header>
+
+    <section id="script"><h1>The Module Pattern And Inheritance: A Better Way</h1>
+<p>Recently I blogged about how I like to build my JavaScript “classes”. I personally prefer the module pattern: it provides true encapsulation and doesn’t expose unnecessary methods and properties, which you get when you use the typical prototype pattern.
+
+</p>
+<p>One of the downsides of it, I’ve been told, is that it doesn’t easily allow to build classes that you can inherit from. That is true if you mix the styles, specially if you want to inherit from a class that is built this way. But if you are willing to use this technique throughout all the inheritance chain, I will demonstrate that it provides a much more powerful and sane way of doing inheritance.
+
+</p>
+<p>One of the fallacies of using inheritance in JavaScript in the typical prototypical way - and in the model of most OO programming languages I know - is that inheritance, as it is, is a leaky abstraction. Most of the time you have to be aware of some of the implementation details of the super class to be able to inherit from it properly. For instance, since the entire prototypical chain uses the object that is bound to this, you have to be careful that you don’t override any of the properties that are being used down the chain.
+
+</p>
+<p>For instance, if you are inheriting from Node.js EventEmitter pseudo-class, you have to be careful to never override any of the properties it initializes and changes.
+
+</p>
+<p>Let me give you an example of where this fails:
+
+</p>
+<p>Let’s say you have an Animal class:
+
+</p>
+<pre><code class="lang-javascript"><span class="function"><span class="keyword">function</span> <span class="title">Animal</span><span class="params">()</span> {</span>
+  <span class="keyword">this</span>.walked = <span class="literal">false</span>;
+}
+
+Animal.prototype.walk = <span class="function"><span class="keyword">function</span> <span class="title">walk</span><span class="params">()</span> {</span>
+  console.log(<span class="string">'walking...'</span>)
+  <span class="keyword">this</span>.walked = <span class="literal">true</span>
+}
+
+Animal.prototype.hasBeenWalked = <span class="function"><span class="keyword">function</span> <span class="title">hasBeenWalked</span><span class="params">()</span> {</span>
+  <span class="keyword">return</span> <span class="keyword">this</span>.walked
+}
+
+module.exports = Animal</code></pre>
+<p>And let’s say you want to inherit from it. If you save the previous module into a local file named “animal.js”, you can then inherit from it and build a Cat specialization like this:
+
+</p>
+<pre><code class="lang-javascript"><span class="keyword">var</span> Animal = require(<span class="string">'./animal'</span>)
+  , inherits     = require(<span class="string">'util'</span>).inherits
+  ;
+
+<span class="function"><span class="keyword">function</span> <span class="title">Cat</span><span class="params">()</span> {</span>
+  Animal.call(<span class="keyword">this</span>);
+}
+
+inherits(Cat, Animal);
+
+Cat.prototype.pat = <span class="function"><span class="keyword">function</span> <span class="title">pat</span><span class="params">()</span> {</span>
+  console.log(<span class="string">'purr'</span>);
+};
+
+Cat.prototype.lasagna = <span class="keyword">function</span>() {
+  console.log(<span class="string">'lasagna!'</span>);
+  <span class="keyword">this</span>.walked = <span class="literal">true</span>;
+};
+
+module.exports = Cat;</code></pre>
+<p>I introduced an error here: the <code>Cat.prototype.lasagna</code> method sets a the <code>this.walked</code> property to true. Now if you use this cat class and don’t call the lasagna method, it all works fine:
+
+</p>
+<pre><code class="lang-javascript">&gt; <span class="keyword">var</span> Cat = require(<span class="string">'./cat'</span>)
+<span class="literal">undefined</span>
+&gt; <span class="keyword">var</span> garfield = <span class="keyword">new</span> Cat()
+<span class="literal">undefined</span>
+&gt; garfield.hasBeenWalked()
+<span class="literal">false</span>
+&gt; garfield.walk()
+walking...
+<span class="literal">undefined</span>
+&gt; garfield.hasBeenWalked()
+<span class="literal">true</span></code></pre>
+<p>But if you call the lasagna method, it all goes wrong:
+
+</p>
+<pre><code class="lang-javascript">&gt; <span class="keyword">var</span> Cat = require(<span class="string">'./cat'</span>)
+<span class="literal">undefined</span>
+&gt; <span class="keyword">var</span> garfield =<span class="keyword">new</span> Cat()
+<span class="literal">undefined</span>
+&gt; garfield.hasBeenWalked()
+<span class="literal">false</span>
+&gt; garfield.lasagna()
+lasagna!
+<span class="literal">undefined</span>
+&gt; garfield.hasBeenWalked()
+<span class="literal">true</span></code></pre>
+<p>This happens because the cat object is being used like a property global namespace for storing all and every property of this object. Global namespaces tend to become overcrowded and clashes happen if there is no alternative.
+
+</p>
+<p>Fortunately, there is an alternative.
+
+</p>
+<h2>Using the Module Pattern</h2>
+<p>Let’s do the previous example using the module pattern:
+
+</p>
+<pre><code class="lang-javascript"><span class="function"><span class="keyword">function</span> <span class="title">Animal</span><span class="params">()</span> {</span>
+
+  <span class="keyword">var</span> walked = <span class="literal">false</span>
+
+  <span class="function"><span class="keyword">function</span> <span class="title">walk</span><span class="params">()</span> {</span>
+    console.log(<span class="string">'walking...'</span>)
+    walked = <span class="literal">true</span>
+  }
+
+  <span class="function"><span class="keyword">function</span> <span class="title">hasBeenWalked</span><span class="params">()</span> {</span>
+    <span class="keyword">return</span> walked
+  }
+
+  <span class="keyword">return</span> {
+    walk: walk
+  , hasBeenWalked: hasBeenWalked
+  }
+}
+
+module.exports = Animal</code></pre>
+<p>Now that we have an Animal class, let’s build the Cat one:
+
+</p>
+<pre><code class="lang-javascript"><span class="keyword">var</span> Animal = require(<span class="string">'./animall'</span>)
+
+<span class="function"><span class="keyword">function</span> <span class="title">Cat</span><span class="params">()</span> {</span>
+  <span class="keyword">var</span> cat = {}
+  <span class="keyword">var</span> walked = <span class="literal">false</span>
+
+  cat.__proto__ = Animal()
+
+  cat.pat = <span class="function"><span class="keyword">function</span> <span class="title">pat</span><span class="params">()</span> {</span>
+    console.log(<span class="string">'being patted'</span>)
+  }
+
+  cat.lasagna = <span class="function"><span class="keyword">function</span> <span class="title">lasagna</span><span class="params">()</span> {</span>
+    console.log(<span class="string">'Lasagna!'</span>)
+    walked = <span class="literal">true</span>
+  }
+
+  <span class="keyword">return</span> cat
+}
+
+module.exports = Cat</code></pre>
+<p>Now, if you instantiate a Garfield and then invoke the mischieving lasagna method, it all still works:
+
+</p>
+<pre><code class="lang-javascript">&gt; <span class="keyword">var</span> Cat = require(<span class="string">'./cat'</span>)
+<span class="literal">undefined</span>
+&gt; <span class="keyword">var</span> garfield = Cat()
+<span class="literal">undefined</span>
+&gt; garfield.hasBeenWalked()
+<span class="literal">false</span>
+&gt; garfield.lasagna()
+Lasagna!
+<span class="literal">undefined</span>
+&gt; garfield.hasBeenWalked()
+<span class="literal">false</span>
+&gt; garfield.walk()
+walking...
+<span class="literal">undefined</span>
+&gt; garfield.hasBeenWalked()
+<span class="literal">true</span></code></pre>
+<p>Now, in this case, for every object instance you actually have two separate objects: the animal object and the cat object.
+
+</p>
+<p>It’s like our brains: the lizzard brain, the mammal brain and the human brain. They’re all layered on top of each other, overriding the lower parts, but they do not use the same space.</p>
+    </section>
+    <script>
+
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-97144-8']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+
+    </script>
+  </body>
+</html>

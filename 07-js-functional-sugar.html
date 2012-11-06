@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Metaduck</title>
+    <meta name="author" content="Pedro Teixeira">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/metaduck.css">
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">Metaduck</a></h1>
+    </header>
+
+    <section id="script"><h1>Some JavaScript Functional Sugar</h1>
+<p>I used to do a lot of Ruby, and now I’m doing only JavaScript. I really like Node and JavaScript, but since I’m lazy, I miss some of the niceties of the Ruby language. One of these niceties is that you can use a method reference when iterating over an Enumeration.
+
+</p>
+<p>For instance, if you had a collection of User objects, you can extract all the name attributes by using:
+
+</p>
+<pre><code class="lang-ruby">users.map( &amp;<span class="symbol">:name</span> )</code></pre>
+<p>I recently realized that we can have a similar solution in JavaScript that I think is even more elegant:
+
+</p>
+<pre><code class="lang-javascript"><span class="function"><span class="keyword">function</span> <span class="title">prop</span><span class="params">(propName)</span> {</span>
+  <span class="keyword">return</span> <span class="keyword">function</span>(obj) {
+    <span class="keyword">return</span> obj [propName ];
+  }
+}</code></pre>
+<p>Now you can use this prop function as the property accessor shortcut:
+
+</p>
+<pre><code class="lang-javascript">users.map( prop(<span class="string">'name'</span>) );</code></pre>
+<p>Hurray JavaScript!</p>
+    </section>
+    <script>
+
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-97144-8']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+
+    </script>
+  </body>
+</html>

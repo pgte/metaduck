@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Node Tuts</title>
+    <meta name="author" content="Pedro Teixeira">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/nodetuts.css">
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">Node Tuts</a></h1>
+      <h2></h2>
+      <section id="helpers">
+        <p><a class="button" rel="button" id="openscript" href="#">Detach script window &#8663;</a></p>
+        <p><a id="permalink" href="#">Permalink to current time</a></p>
+      </section>
+    </header>
+
+    <div class="alert" id="instructions" style="position: absolute">
+      <button type="button" class="close" data-dismiss="alert">&times;</button>
+      You can navigate the video and the script by using the &larr; and &rarr; cursor keys.
+    </div>
+
+    <section id="video"></section>
+    
+    <a href="#" id="popover" rel="popover" data-content="Change your window size to show the rolling script down here." data-title="Script" data-placement="top" data-selector="#script">
+    </a>
+
+    
+    <section id="script">
+<h1>The Event Emitter Pattern</h1>
+<p>The Callback pattern — which I convered on the previous episode — is useful when you are issuing granular I/O simple operations either fail or succeed and have a result.
+
+</p>
+<p>But if you have a collection of events </p>
+    </section>
+    <script src="js/jquery.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/jquery-smooth-scroll.min.js"></script>
+    <script src="js/keymaster.min.js"></script>
+    <script src="js/popcorn-complete.min.js"></script>
+    <script src="js/jquery.cookie.js"></script>
+    <script src="js/nodetuts.js"></script>
+    <script>
+
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-19307016-1']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+
+    </script>
+  </body>
+</html>
