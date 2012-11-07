@@ -199,6 +199,14 @@ header h1 a:visited {
   padding: 1em;
 }
 
+/* RSS */
+
+#rss {
+  position: absolute;
+  right: 1em;
+  top:; 1em;
+}
+
 /** Syntax Highlight **/
 
 code { color: rgba(0,0,0, 1); }
