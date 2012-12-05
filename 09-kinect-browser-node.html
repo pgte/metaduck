@@ -22,10 +22,10 @@
 
 
 </p>
-<p>First I tried looking into the depth and camera feeds and created <a href="https://github.com/pgte/node-kinect">a Node.js binding for that</a> that uses <a href="https://github.com/OpenKinect/libfreenect">libfreenect</a> underneath.
+<p>First I tried getting access to the depth and camera feeds, creating <a href="https://github.com/pgte/node-kinect">a Node.js binding for that</a> — which uses <a href="https://github.com/OpenKinect/libfreenect">libfreenect</a>.
 
 </p>
-<p>Then I looked into how I could extract skeleton information and heard about <a href="https://github.com/OpenNI/OpenNI">OpenNI</a>. OpenNI has a LGPL license, which was fine for the use I wanted to give to this.
+<p>Then I looked into how I could extract skeleton information and heard about <a href="https://github.com/OpenNI/OpenNI">OpenNI</a>.
 
 </p>
 <h1>Node-Land</h1>
@@ -43,7 +43,7 @@
   });
 });</code></pre>
 <h1>Browser-land</h1>
-<p>In order to pipe this skeleton data into the browser I used the combination of these Node modules:
+<p>To pipe this skeleton data into the browser I used the combination of these Node modules:
 
 </p>
 <ul>
@@ -56,14 +56,14 @@
 
 </p>
 <h1>Demos</h1>
-<p>I created 2 demos:
+<p>The module comes with 2 basic demos:
 
 </p>
 <ul>
 <li>a basic skeleton where I simply render the joints</li>
 <li>and another one where I use the webaudio API to play some samples. </li>
 </ul>
-<p>Check a video of these demos here:
+<p>Here is a video of these demos:
 
 </p>
 <p><iframe src="http://player.vimeo.com/video/54947368?badge=0" width="640" height="480" frameborder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe> <p><a href="http://vimeo.com/54947368">Kinect on the browser using Node.js</a> from <a href="http://vimeo.com/pedroteixeira">Pedro Teixeira</a> on <a href="http://vimeo.com">Vimeo</a>.</p>
