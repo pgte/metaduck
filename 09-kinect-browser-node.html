@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Metaduck</title>
+    <meta name="author" content="Pedro Teixeira">
+    <link rel="alternate" type="application/rss+xml" title="RSS" href="http://metaduck.com/rss.xml" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/metaduck.css">
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">Metaduck</a></h1>
+      <a id="rss" href="rss.xml"><img src="img/rss.png"></a>
+    </header>
+
+    <section id="script"><h1>Kinect in the Browser using Node.js</h1>
+<p>I was recently at a <a href="http://nodecopter.com/">Nodecopter</a> session and had this idea of controlling one of those drones using a Kinect. So I ordered one.
+
+</p>
+<p><img src="/img/kinect.jpg" alt="Kinect">
+
+
+</p>
+<p>First I tried looking into the depth and camera feeds and created <a href="https://github.com/pgte/node-kinect">a Node.js binding for that</a> that uses <a href="https://github.com/OpenKinect/libfreenect">libfreenect</a> underneath.
+
+</p>
+<p>Then I looked into how I could extract skeleton information and heard about <a href="https://github.com/OpenNI/OpenNI">OpenNI</a>. OpenNI has a LGPL license, which was fine for the use I wanted to give to this.
+
+</p>
+<h1>Node-Land</h1>
+<p>I then created <a href="https://github.com/pgte/node-openni">node-openni</a>, a Node binding for OpenNI skeleton feed. Using this module you can track the skeleton joints using an event-emitter like this:
+
+</p>
+<pre><code class="lang-javascript"><span class="keyword">var</span> OpenNI = require(<span class="string">'openni'</span>);
+<span class="keyword">var</span> context = OpenNI();
+[
+  <span class="string">"head"</span>, <span class="string">"left_hand"</span>, <span class="string">"right_hand"</span>
+].forEach(<span class="keyword">function</span>(joint) {
+  context.on(joint, <span class="keyword">function</span>(userId, x, y, z) {
+    console.log(<span class="string">'joint %s of user %d moved to (%d, %d, %d).'</span>,
+                joint, userId, x, y, z);
+  });
+});</code></pre>
+<h1>Browser-land</h1>
+<p>In order to pipe this skeleton data into the browser I used the combination of these Node modules:
+
+</p>
+<ul>
+<li><a href="https://github.com/substack/shoe#readme">shoe</a>: Streaming socksjs for Node and the browser;</li>
+<li><a href="https://github.com/substack/emit-stream#emit-stream">emit-stream</a>: turn event emitters into streams and streams into event emitters — This is how I transformed the skeleton event stream into a data stream on the server and the reverse on the client;</li>
+<li><a href="https://github.com/dominictarr/JSONStream#readme">JSONStream</a>: to serialize and deserialize the data stream;</li>
+<li><a href="https://npmjs.org/package/browserify#readme">browserify</a>: to bundle the browser code.</li>
+</ul>
+<p>And with these modules and a few lines of code I created <a href="https://npmjs.org/package/openni-browser#readme">node-openni-browser</a>.
+
+</p>
+<h1>Demos</h1>
+<p>I created 2 demos:
+
+</p>
+<ul>
+<li>a basic skeleton where I simply render the joints</li>
+<li>and another one where I use the webaudio API to play some samples. </li>
+</ul>
+<p>Check a video of these demos here:
+
+</p>
+<p><iframe src="http://player.vimeo.com/video/54947368?badge=0" width="640" height="480" frameborder="0" webkitAllowFullScreen mozallowfullscreen allowFullScreen></iframe> <p><a href="http://vimeo.com/54947368">Kinect on the browser using Node.js</a> from <a href="http://vimeo.com/pedroteixeira">Pedro Teixeira</a> on <a href="http://vimeo.com">Vimeo</a>.</p>
+
+</p>
+<p>All demos were created using the fantastic <a href="http://mrdoob.github.com/three.js/">three.js</a>.</p>
+    </section>
+    <footer>
+      <hr>
+      <a href="http://about.me/pedroteixeira">About me</a>
+    </footer>
+    <script>
+
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-10782097-1']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+
+    </script>
+  </body>
+</html>
