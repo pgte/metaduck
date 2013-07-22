@@ -1,0 +1,14 @@
+.chart {
+  clear: both;
+  border-top: 1px solid #eee;
+}
+
+.info {
+  float: left;
+  width: 400px;
+}
+
+.graph {
+  float: left;
+  width: 400px;
+}
